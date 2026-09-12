@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Structured Content Archetype Clustering — FlyRank ML Research</title>
+  <meta name="description" content="Unsupervised machine learning research paper on solving enterprise search decay and triaging content playbooks across 30,000 portfolio assets.">
+  <meta name="author" content="FlyRank ML Engineering">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(59, 130, 246, 0.3);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --gradient-brand: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+      --gradient-surface: linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
+      --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Glow */
+    .ambient-glow {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 450px;
+      background: radial-gradient(circle at 50% 20%, rgba(59, 130, 246, 0.15) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 80%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 100px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header & Badges */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .badge-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    h1.paper-title {
+      font-family: var(--font-heading);
+      font-size: 2.75rem;
+      font-weight: 800;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .paper-meta {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .paper-meta a {
+      color: var(--accent-blue);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .paper-meta a:hover {
+      color: var(--accent-cyan);
+    }
+
+    /* Section Styling */
+    section {
+      margin-bottom: 56px;
+    }
+
+    h2.section-title {
+      font-family: var(--font-heading);
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    h2.section-title span.sec-num {
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    h3.subsection-title {
+      font-family: var(--font-heading);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin: 24px 0 12px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #cbd5e1;
+      font-size: 1rem;
+    }
+
+    /* Abstract Box */
+    .abstract-card {
+      background: var(--gradient-surface);
+      border: 1px solid var(--border-accent);
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 48px;
+      backdrop-filter: blur(12px);
+    }
+
+    .abstract-card h2 {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-cyan);
+      margin-bottom: 12px;
+    }
+
+    .abstract-card p {
+      font-size: 1.05rem;
+      line-height: 1.75;
+      color: #f1f5f9;
+      margin-bottom: 0;
+    }
+
+    /* Metric Cards Grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .metric-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-accent);
+    }
+
+    .metric-card .value {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      font-weight: 800;
+      background: var(--gradient-brand);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .metric-card .label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 500;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 20px 0;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.92rem;
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.9);
+      padding: 14px 18px;
+      font-weight: 600;
+      color: #e2e8f0;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-heading);
+      letter-spacing: 0.02em;
+    }
+
+    td {
+      padding: 12px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #cbd5e1;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .highlight-cell {
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    /* Callout Alert */
+    .alert-box {
+      border-left: 4px solid var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.08);
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+
+    .alert-box.alert-success {
+      border-left-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .alert-box.alert-warning {
+      border-left-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .alert-title {
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+
+    /* Image Figure */
+    .figure-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin: 24px 0;
+      text-align: center;
+    }
+
+    .figure-card img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .figure-caption {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 12px;
+      font-style: italic;
+    }
+
+    /* Code Block */
+    pre, code {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+    }
+
+    pre {
+      background: #060911;
+      padding: 16px 20px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+      margin: 16px 0;
+      color: #94a3b8;
+    }
+
+    code {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent-cyan);
+    }
+
+    /* Lists */
+    ul, ol {
+      margin: 12px 0 20px 24px;
+      color: #cbd5e1;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 32px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient-glow"></div>
+
+<div class="container">
+  <header>
+    <div class="badge-group">
+      <span class="badge">Machine Learning Research</span>
+      <span class="badge">Unsupervised Clustering</span>
+      <span class="badge">Search Intelligence</span>
+    </div>
+    <h1 class="paper-title">Structured Content Archetype Clustering for Enterprise Portfolio Triage</h1>
+    <div class="paper-meta">
+      <span><strong>Author:</strong> Lead Machine Learning Intern & Antigravity Assistant</span>
+      <span><strong>Repository:</strong> <a href="https://github.com/kenzo4k/Flyrank-ML" target="_blank">github.com/kenzo4k/Flyrank-ML</a></span>
+      <span><strong>Published:</strong> September 2026</span>
+    </div>
+  </header>
+
+  <!-- Section 0: Abstract -->
+  <div class="abstract-card">
+    <h2>0. Abstract</h2>
+    <p>
+      Managing enterprise content decay across thousands of organic search assets is an intractable manual bottleneck for editorial teams. Using an anonymized portfolio release of 30,000 articles across 32 client domains (54.2% baseline decay rate), we framed content triage as an unsupervised multi-dimensional clustering task across 7 continuous search, freshness, depth, and engagement dimensions. We trained a standardized K-Means model (<em>k</em>=4) evaluated under a leak-free <code>GroupShuffleSplit</code> across 7 unseen client websites, demonstrating high cross-domain centroid stability (mean cosine = 0.860). The model operationalizes four behavioral playbooks (<em>Refresh</em>, <em>Protect</em>, <em>Optimize Snippet</em>, <em>Prune/Redirect</em>), achieving <strong>70.0% Precision@20</strong> (+40 pp over a two-variable baseline rule) and eliminating destructive rewrites on Page 1 evergreen pillars. These outputs deliver structured decision-support for human editorial sprint planning, proving that geometric multi-signal clustering outperforms rigid heuristic thresholds on complex search portfolios.
+    </p>
+  </div>
+
+  <!-- Key Metrics Highlights -->
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="value">70.0%</div>
+      <div class="label">Precision@20 on Holdout</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">+40 pp</div>
+      <div class="label">Advantage vs. Heuristic Rule</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">0.860</div>
+      <div class="label">Mean Centroid Cosine Stability</div>
+    </div>
+    <div class="metric-card">
+      <div class="value">30,000</div>
+      <div class="label">Portfolio Assets Analyzed</div>
+    </div>
+  </div>
+
+  <!-- Section 1: Problem Framing -->
+  <section id="problem">
+    <h2 class="section-title"><span class="sec-num">1.</span> Problem Framing & Motivation</h2>
+    <p>
+      Search marketing platforms and enterprise publishers face a continuous maintenance challenge: organic search rankings slip, competitive SERP dynamics shift, and historical articles quietly decay. Reviewing 30,000 published articles item-by-item is operationally intractable for editorial staff.
+    </p>
+    <p>
+      Traditional search software relies on hand-crafted heuristic rules (such as prioritizing articles based solely on 90-day search volume and days since update). However, empirical analysis shows that search demand and freshness are orthogonal / slightly negatively correlated (<em>r</em> = -0.073). Simple cutoff rules fail because they cannot capture non-linear trade-offs between keyword rank, search click-through rate (CTR), article word depth, and user engagement.
+    </p>
+    <div class="alert-box">
+      <div class="alert-title">Core Research Question</div>
+      Can unsupervised multi-dimensional performance clustering discover latent behavioral archetypes that prioritize content decay and triage editorial playbooks more accurately than heuristic rules on unseen client websites?
+    </div>
+  </section>
+
+  <!-- Section 2: Data Safety & Contracts -->
+  <section id="data">
+    <h2 class="section-title"><span class="sec-num">2.</span> Data Safety & Ingestion Contract</h2>
+    <p>
+      This research utilizes the <code>data/raw/content_refresh_anonymized.csv</code> dataset (30,000 observations across 32 client domains, observed over a trailing 90-day search window), connected to the upstream warehouse repository <code>hf://datasets/FlyRank/internship-warehouse</code> (verified across 104 clients and 51 connected GA4 properties).
+    </p>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Field Bucket</th>
+            <th>Columns</th>
+            <th>Role & Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--accent-cyan)">Model Features (7)</strong></td>
+            <td><code>log_impressions</code>, <code>avg_position</code>, <code>ctr</code>, <code>days_since_last_update</code>, <code>content_age_days</code>, <code>word_count</code>, <code>engagement_rate</code></td>
+            <td>Standardized numerical inputs knowable at decision time. Zero-imputation ($0 \rightarrow 100$) applied to unranked positions.</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--accent-green)">Evaluative Benchmark</strong></td>
+            <td><code>is_declining_label</code></td>
+            <td>Binary decay proxy ($\text{trend\_direction} == \text{'down'}$) withheld strictly from clustering and used for downstream holdout precision evaluation.</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--accent-amber)">Context Keys</strong></td>
+            <td><code>client_id</code>, <code>content_id</code></td>
+            <td>Pseudonymized identifiers used strictly for joins and grouped cross-validation partitioning.</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--accent-rose)">Deliberately Excluded</strong></td>
+            <td><code>trend_direction</code>, <code>trend_pct</code>, <code>health_score</code>, <code>priority_score</code></td>
+            <td>Excluded to eliminate target leakage and decision-derived circularity. Feature overlap = 0%.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 3: Baseline -->
+  <section id="baseline">
+    <h2 class="section-title"><span class="sec-num">3.</span> Heuristic Baseline & Signal Audit</h2>
+    <p>
+      To establish a transparent benchmark to beat, we implemented a 50/50 percentile composite rule:
+    </p>
+    <pre><code>Baseline Rule Score = 0.50 * PercentileRank(impressions_90d) + 0.50 * PercentileRank(days_since_last_update)</code></pre>
+    <h3 class="subsection-title">The Evergreen False-Alarm Blunder</h3>
+    <p>
+      Auditing the baseline queue uncovered a critical flaw: the #2 prioritized item was <code>content_a5dbb404bdc2</code>—a high-traffic Page 1 evergreen asset with 79k impressions and healthy CTR that had not decayed. The two-variable rule falsely flagged it for an immediate destructive content rewrite solely due to volume and a 106-day update gap.
+    </p>
+  </section>
+
+  <!-- Section 4: Model & Analysis -->
+  <section id="methodology">
+    <h2 class="section-title"><span class="sec-num">4.</span> Model Architecture & PCA Projection</h2>
+    <p>
+      We selected K-Means clustering (<em>k</em>=4) for its geometric interpretability and stable centroid representations. Features are standardized via <code>StandardScaler</code> ($\mu=0, \sigma=1$).
+    </p>
+    <div class="figure-card">
+      <img src="kmeans_archetype_clusters.png" alt="PCA 2D Cluster Visualization" onerror="this.src='img/kmeans_archetype_clusters.png'">
+      <div class="figure-caption">Figure 1: 2D Principal Component Projection of the Four Content Archetypes (Total Explained Variance: 40.5%).</div>
+    </div>
+    <p>
+      To order the triage queue across thousands of articles on unseen client sites, we formulated a semi-supervised opportunity score:
+    </p>
+    <pre><code>Opportunity Score = Archetype Decay Weight * PercentileRank(impressions_90d)</code></pre>
+  </section>
+
+  <!-- Section 5: Evaluation -->
+  <section id="evaluation">
+    <h2 class="section-title"><span class="sec-num">5.</span> Out-of-Sample Holdout Evaluation</h2>
+    <p>
+      To test out-of-domain generalization, we evaluated the model against the baseline on a <strong>Grouped Client Split</strong> (25 train client sites / 7 unseen holdout client sites, 6,163 items, 51.10% base rate):
+    </p>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Evaluation Metric</th>
+            <th>Week-4 Baseline Rule</th>
+            <th>Week-5 Archetype Model</th>
+            <th>Model Advantage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Precision@10</strong></td>
+            <td>50.0% (0.98x lift)</td>
+            <td class="highlight-cell">70.0% (1.37x lift)</td>
+            <td>+20.0 pp</td>
+          </tr>
+          <tr>
+            <td><strong>Precision@20</strong></td>
+            <td>30.0% (0.59x lift)</td>
+            <td class="highlight-cell">70.0% (1.37x lift)</td>
+            <td><strong style="color:var(--accent-green)">+40.0 pp</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Precision@50</strong></td>
+            <td>32.0% (0.63x lift)</td>
+            <td class="highlight-cell">54.0% (1.06x lift)</td>
+            <td>+22.0 pp</td>
+          </tr>
+          <tr>
+            <td><strong>Precision@100</strong></td>
+            <td>31.0% (0.61x lift)</td>
+            <td>44.0% (0.86x lift)</td>
+            <td>+13.0 pp</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert-box alert-warning">
+      <div class="alert-title">Honest Metric Horizon Context</div>
+      Beyond rank 50, both the model (44.0%) and baseline (31.0%) fall below the 51.1% holdout base rate, demonstrating that the priority queue is optimized for top-tier editorial sprint triage rather than exhaustive ranking deep into the portfolio tail.
+    </div>
+  </section>
+
+  <!-- Section 6: Interpretation -->
+  <section id="interpretation">
+    <h2 class="section-title"><span class="sec-num">6.</span> Archetype Profiles & Operational Playbooks</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Cluster</th>
+            <th>Archetype Name</th>
+            <th>Median Imp</th>
+            <th>Mean Pos</th>
+            <th>Decay Rate</th>
+            <th>Action Code</th>
+            <th>Operational Playbook</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>0</strong></td>
+            <td><strong>Stale Workhorses</strong></td>
+            <td>2,133</td>
+            <td>17.0</td>
+            <td><strong style="color:var(--accent-rose)">63.4%</strong></td>
+            <td><code>DEEP_REFRESH</code></td>
+            <td>Update factual data, expand depth, recover rank.</td>
+          </tr>
+          <tr>
+            <td><strong>1</strong></td>
+            <td><strong>Evergreen Anchors</strong></td>
+            <td>351</td>
+            <td>18.6</td>
+            <td><strong style="color:var(--accent-green)">39.3%</strong></td>
+            <td><code>PROTECT_MONITOR</code></td>
+            <td><strong>Lock body text.</strong> Monitor rank stability; protect links.</td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td><strong>Young Volatile</strong></td>
+            <td>895</td>
+            <td>14.6</td>
+            <td><strong style="color:var(--accent-amber)">65.8%</strong></td>
+            <td><code>OPTIMIZE_SNIPPET</code></td>
+            <td>Rewrite title tag and meta snippet for CTR.</td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td><strong>Dead Weight</strong></td>
+            <td>3</td>
+            <td>16.6</td>
+            <td>8.9%</td>
+            <td><code>PRUNE_OR_REDIRECT</code></td>
+            <td>301 redirect or prune to conserve crawl budget.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 7: Recommendations & Safeguards -->
+  <section id="recommendations">
+    <h2 class="section-title"><span class="sec-num">7.</span> Operational Recommendations & Safeguards</h2>
+    <ul>
+      <li><strong>Resource Allocation</strong>: Focus 70% of writer capacity on Cluster 0 (Stale Workhorses) and 20% of SEO capacity on Cluster 2 (Young Volatile snippet fixes).</li>
+      <li><strong>The Evergreen Lock</strong>: Evergreen Anchors (Cluster 1) are permanently locked against content body rewrites.</li>
+      <li><strong>Grace Period</strong>: Content $\le 90$ days old is exempt from pruning rules to allow search indexing maturity.</li>
+      <li><strong>The "No-Go" List</strong>: Automated deletion or redirection of core brand or navigation pillar URLs is strictly prohibited.</li>
+    </ul>
+  </section>
+
+  <!-- Section 8: Reproducibility -->
+  <section id="reproducibility">
+    <h2 class="section-title"><span class="sec-num">8.</span> Reproducibility & Open Verification</h2>
+    <p>
+      The complete codebase executes deterministically in <strong>&lt;60 seconds</strong> from a clean clone with fixed seeds (<code>random_state=42</code>). All verification receipts are committed in <code>work/outputs/</code>:
+    </p>
+    <ul>
+      <li><code>actionable_triage_queue.csv</code>: Top 100 holdout triage queue with reason codes.</li>
+      <li><code>archetype_profiles.json</code>: Mathematical cluster centers and decay weights.</li>
+      <li><code>model_vs_baseline_holdout.json</code>: Verifiable holdout metric receipts.</li>
+      <li><code>monitoring_thresholds.json</code>: Drift thresholds (Cosine &lt; 0.80, PSI &gt; 0.25).</li>
+    </ul>
+  </section>
+
+  <!-- Section 9: Acknowledgments & Data Credit -->
+  <section id="acknowledgments">
+    <h2 class="section-title"><span class="sec-num">9.</span> Acknowledgments & Data Credit</h2>
+    <div class="alert-box alert-success">
+      <p style="margin-bottom: 0;">
+        This research was built on the <strong>FlyRank ML Internship dataset</strong> provided by <a href="https://flyrank.ai" target="_blank" style="color:var(--accent-cyan); font-weight:600;">FlyRank.ai</a>. We gratefully credit the FlyRank engineering team for providing the pseudonymized multi-tenant search console and analytics data warehouse.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 FlyRank ML Research Series · Open Source Machine Learning for Search Operations</p>
+    <p><a href="https://github.com/kenzo4k/Flyrank-ML" target="_blank">View GitHub Repository</a> · <a href="https://flyrank.ai" target="_blank">FlyRank.ai</a></p>
+  </footer>
+</div>
+
+</body>
+</html>

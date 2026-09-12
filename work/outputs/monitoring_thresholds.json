@@ -1,0 +1,13 @@
+{
+  "centroid_cosine_threshold_mean": 0.8,
+  "centroid_cosine_threshold_cluster0": 0.6,
+  "psi_drift_threshold": 0.25,
+  "portfolio_decay_shift_pp_threshold": 10.0,
+  "scheduled_retrain_cadence_days": 180,
+  "current_production_baseline": {
+    "dataset_rows": 30000,
+    "clients_count": 32,
+    "baseline_decay_rate": 0.5421,
+    "holdout_mean_cosine_stability": 0.8596
+  }
+}

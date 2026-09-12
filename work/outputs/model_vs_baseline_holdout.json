@@ -1,0 +1,35 @@
+{
+  "holdout_client_count": 7,
+  "holdout_item_count": 6163,
+  "holdout_base_rate": 0.511,
+  "metrics": {
+    "precision_at_10": {
+      "baseline_precision": 0.5,
+      "baseline_lift": 0.98,
+      "model_precision": 0.7,
+      "model_lift": 1.37,
+      "advantage_pp": 20.0
+    },
+    "precision_at_20": {
+      "baseline_precision": 0.3,
+      "baseline_lift": 0.59,
+      "model_precision": 0.7,
+      "model_lift": 1.37,
+      "advantage_pp": 40.0
+    },
+    "precision_at_50": {
+      "baseline_precision": 0.32,
+      "baseline_lift": 0.63,
+      "model_precision": 0.54,
+      "model_lift": 1.06,
+      "advantage_pp": 22.0
+    },
+    "precision_at_100": {
+      "baseline_precision": 0.31,
+      "baseline_lift": 0.61,
+      "model_precision": 0.44,
+      "model_lift": 0.86,
+      "advantage_pp": 13.0
+    }
+  }
+}
